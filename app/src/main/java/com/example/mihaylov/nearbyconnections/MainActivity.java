@@ -249,7 +249,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     }
 
     /**
-     * We are unable to connect to Nearby Connections' GoogleApiClient. Oh uh.
+     * We are unable to connect to Nearby Connections' GoogleApiClient
      */
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
@@ -338,14 +338,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     protected void onAdvertisingFailed() {
     }
 
-    /**
-     * A pending connection with a remote endpoint has been created. Use {@link ConnectionInfo} for
-     * metadata about the connection (like incoming vs outgoing, or the authentication token). If we
-     * want to continue with the connection, call {@link #acceptConnection(Endpoint)}. Otherwise, call
-     * {@link #rejectConnection(Endpoint)}.
-     */
-    protected void onConnectionInitiated(Endpoint endpoint, ConnectionInfo connectionInfo) {
-    }
 
     /**
      * Accepts a connection request.
@@ -353,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     protected void acceptConnection(final Endpoint endpoint) {
         new AlertDialog.Builder(this)
                 .setTitle("Accept connection to " + getName())
-                .setMessage("Confirm if the code " + " is also displayed on the other device")
+                .setMessage("Connecting with device?")
                 .setPositiveButton("Accept", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         // The user confirmed, so we can accept the connection.
@@ -690,11 +682,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         Log.w(TAG, msg);
     }
 
-    @CallSuper
-    protected void logE(String msg, Throwable e) {
-        Log.e(TAG, msg, e);
-    }
-
     /**
      * Represents a device we can talk to.
      */
@@ -739,8 +726,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         switch (view.getId()) {
             case R.id.disconnectBtn:
                 Log.i(TAG, " onDisconnectClicked");
-                Nearby.Connections.stopAdvertising(googleApiClient);
-                Nearby.Connections.stopDiscovery(googleApiClient, getString(R.string.service_id));
+                stopAdvertising();
+                stopDiscovering();
+                disconnectFromAllEndpoints();
                 break;
             case R.id.ClientBtn:
                 startDiscovering();
@@ -750,6 +738,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 break;
             case R.id.sendBtn:
                 byte[] str = editTextMessage.getText().toString().getBytes(Charset.forName("UTF-8"));
+                String text = textFiled.getText().toString();
+                textFiled.setText(text + "\n" + editTextMessage.getText().toString());
                 send(Payload.fromBytes(str));
                 break;
         }

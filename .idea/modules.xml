@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Nearbyconnections.iml" filepath="$PROJECT_DIR$/Nearbyconnections.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/nearby-connection-chat.iml" filepath="$PROJECT_DIR$/nearby-connection-chat.iml" />
     </modules>
   </component>
 </project>
