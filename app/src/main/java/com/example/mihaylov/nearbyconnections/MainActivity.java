@@ -7,11 +7,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -43,8 +42,20 @@ public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
 
-    @BindView(R.id.recycler)
-    RecyclerView recycler;
+    private static final String TAG = "NEARBY_PROJECT:";
+
+    // client's name that's visible to other devices when connecting
+    public static final String CLIENT_NAME = "CLIENT";
+
+    // host's name that's visible to other devices when connecting
+    public static final String HOST_NAME = "HOST";
+
+    private String userName = "";
+
+    public static final Strategy STRATEGY = Strategy.P2P_STAR;
+
+    @BindView(R.id.textField)
+    TextView textFiled;
     @BindView(R.id.editTextMessage)
     EditText editTextMessage;
     private GoogleApiClient googleApiClient;
@@ -63,25 +74,6 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_advertising:
-                startAdvertising();
-                break;
-            case R.id.action_discovering:
-                startDiscovery();
-                break;
-        }
-        invalidateOptionsMenu();
-        return true;
-    }
 
     @Override
     protected void onStart() {
@@ -98,21 +90,21 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-    private void startAdvertising() {
+    private void startAdvertise() {
         Nearby.Connections.startAdvertising(
                 googleApiClient,
-                Build.MODEL,
-                "my_service_id",
+                HOST_NAME,
+                getString(R.string.service_id),
                 getConnectionLifecycleCallback(),
-                new AdvertisingOptions(Strategy.P2P_STAR))
+                new AdvertisingOptions(STRATEGY))
                 .setResultCallback(
                         new ResultCallback<Connections.StartAdvertisingResult>() {
                             @Override
                             public void onResult(@NonNull Connections.StartAdvertisingResult result) {
                                 if (result.getStatus().isSuccess()) {
-                                    Log.v("NEARBY", "Advertising");
+                                    Log.i(TAG, "Advertising endpoint");
                                 } else {
-                                    // We were unable to start advertising.
+                                    Log.i(TAG, "unable to start advertising");
                                 }
                             }
                         });
@@ -122,18 +114,19 @@ public class MainActivity extends AppCompatActivity implements
     private void startDiscovery() {
         Nearby.Connections.startDiscovery(
                 googleApiClient,
-                Build.MODEL,
+                CLIENT_NAME,
                 getEndpointDiscoveryCallback(),
-                new DiscoveryOptions(Strategy.P2P_STAR))
+                new DiscoveryOptions(STRATEGY))
                 .setResultCallback(
                         new ResultCallback<Status>() {
                             @Override
                             public void onResult(@NonNull Status status) {
                                 if (status.isSuccess()) {
-                                    Log.v("NEARBY", "Discovering");
+                                    Log.v(TAG, "Discovering success");
                                     // We're discovering!
                                 } else {
                                     // We were unable to start discovering.
+                                    Log.i(TAG, "unable to start discovering");
                                 }
                             }
                         });
@@ -144,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements
         return new ConnectionLifecycleCallback() {
             @Override
             public void onConnectionInitiated(final String endpointId, final ConnectionInfo connectionInfo) {
+                Log.i(TAG, endpointId + " connection initiated");
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Accept connection to " + connectionInfo.getEndpointName())
                         .setMessage("Confirm if the code " + connectionInfo.getAuthenticationToken() + " is also displayed on the other device")
@@ -155,7 +149,10 @@ public class MainActivity extends AppCompatActivity implements
                                     @Override
                                     public void onPayloadReceived(String s, Payload payload) {
 
-                                        Log.v("NEARBY", new String(payload.asBytes()));
+                                        String newMessage = new String(payload.asBytes());
+                                        Log.v(TAG, "onPayloadReceived: " + newMessage);
+                                        String text = textFiled.getText().toString();
+                                        textFiled.setText(text + "\n" + newMessage);
 
                                     }
 
@@ -169,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements
                         .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
                                 // The user canceled, so we should reject the connection.
-                                Nearby.Connections.rejectConnection(googleApiClient, "");
+                                Nearby.Connections.rejectConnection(googleApiClient, getString(R.string.service_id));
                             }
                         })
                         .setIcon(android.R.drawable.ic_dialog_alert)
@@ -180,17 +177,19 @@ public class MainActivity extends AppCompatActivity implements
             public void onConnectionResult(String s, ConnectionResolution result) {
                 switch (result.getStatus().getStatusCode()) {
                     case ConnectionsStatusCodes.STATUS_OK:
+                        Log.i(TAG, " onConnectionResult: connected");
                         // We're connected! Can now start sending and receiving data.
                         break;
                     case ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED:
                         // The connection was rejected by one or both sides.
+                        Log.i(TAG, " onConnectionResult: rejected");
                         break;
                 }
             }
 
             @Override
-            public void onDisconnected(String s) {
-
+            public void onDisconnected(String endpointId) {
+                Log.i(TAG, endpointId + " disconnected");
             }
         };
     }
@@ -199,8 +198,8 @@ public class MainActivity extends AppCompatActivity implements
     private EndpointDiscoveryCallback getEndpointDiscoveryCallback() {
         return new EndpointDiscoveryCallback() {
             @Override
-            public void onEndpointFound(
-                    String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
+            public void onEndpointFound(String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
+                Log.i(TAG, endpointId + " endpoint found");
                 // An endpoint was found!
                 Nearby.Connections.requestConnection(
                         googleApiClient,
@@ -212,10 +211,12 @@ public class MainActivity extends AppCompatActivity implements
                                     @Override
                                     public void onResult(@NonNull Status status) {
                                         if (status.isSuccess()) {
+                                            Log.i(TAG, "successfully requested a connection");
                                             // We successfully requested a connection. Now both sides
                                             // must accept before the connection is established.
                                         } else {
                                             // Nearby Connections failed to request the connection.
+                                            Log.i(TAG, "failed requested a connection");
                                         }
                                     }
                                 });
@@ -224,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements
 
             @Override
             public void onEndpointLost(String endpointId) {
-
+                Log.i(TAG, endpointId + " endpoint lost");
             }
         };
     }
@@ -232,22 +233,37 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-
+        Log.i(TAG, " onConnected");
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-
+        Log.i(TAG, " onConnectionSuspended");
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+        Log.i(TAG, " onConnectionFailed");
     }
 
 
-    @OnClick(R.id.sendBtn)
-    public void onViewClicked() {
-        Nearby.Connections.sendReliableMessage(googleApiClient, "qwe", editTextMessage.getText().toString().getBytes(Charset.forName("UTF-8")));
+    @OnClick({R.id.disconnectBtn, R.id.ClientBtn, R.id.HostBtn, R.id.sendBtn})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.disconnectBtn:
+                Log.i(TAG, " onDisconnectClicked");
+                Nearby.Connections.stopAdvertising(googleApiClient);
+                Nearby.Connections.stopDiscovery(googleApiClient, getString(R.string.service_id));
+                break;
+            case R.id.ClientBtn:
+                startDiscovery();
+                break;
+            case R.id.HostBtn:
+                startAdvertise();
+                break;
+            case R.id.sendBtn:
+                Nearby.Connections.sendReliableMessage(googleApiClient, userName, (userName + ":" + editTextMessage.getText().toString()).getBytes(Charset.forName("UTF-8")));
+                break;
+        }
     }
 }

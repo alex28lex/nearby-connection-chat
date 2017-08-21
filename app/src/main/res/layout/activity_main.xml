@@ -5,10 +5,36 @@
     android:layout_height="match_parent"
     android:background="@drawable/background"
     android:orientation="vertical"
+    android:padding="16dp"
     tools:context="com.example.mihaylov.nearbyconnections.MainActivity">
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/recycler"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/disconnectBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="disconnect" />
+
+        <Button
+            android:id="@+id/ClientBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Be Client" />
+
+        <Button
+            android:id="@+id/HostBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Be Host" />
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/textField"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/messageLayout" />
@@ -33,6 +59,7 @@
             android:id="@+id/sendBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
             android:background="@drawable/rounded_button"
             android:text="send" />
     </LinearLayout>
